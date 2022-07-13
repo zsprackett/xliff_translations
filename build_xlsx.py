@@ -7,6 +7,7 @@ import re
 import getopt
 import os
 import sys
+import yaml
 
 def alpha_dict(list_arg):
     alphabet = []
@@ -41,14 +42,19 @@ if os.path.isfile(output_xlsx):
     print(f'ERROR: Please delete existing output file {output_xlsx}')
     sys.exit(2)
 
+langs = {}
+with open(r'languages.yaml') as file:
+    data = yaml.load(file, Loader=yaml.FullLoader)
+    langs = data['languages']
+
 # Get the namespace, rather than hardcode it to "urn:oasis:names:tc:xliff:document:1.2"
-tree = ET.parse('translated.xliff')
+tree = ET.parse(input_xliff)
 root=tree.getroot()
 namespace = re.match(r'{(.*)}', root.tag).group(1)
 # Now parse again with the namespace set
 ET.register_namespace("", namespace)
 namespace = '{' + f"{namespace}" + '}'
-tree = ET.parse('translated.xliff')
+tree = ET.parse(input_xliff)
 
 workbook = openpyxl.Workbook()
 worksheet = workbook.active
@@ -60,15 +66,7 @@ not_translatable = [
 ]
 
 row = 1
-fieldnames = alpha_dict ([
-    'File',
-    'Context',
-    'English',
-    'French',
-    'German',
-    'Portuguese',
-    'Spanish'
-])
+fieldnames = alpha_dict(['File', 'Context'] + list(f'{key} [{value}]'.format(key, value) for (key, value) in langs.items()))
 for key in fieldnames:
     (col, row) = openpyxl.utils.cell.coordinate_from_string(key + str(1))
     col = openpyxl.utils.cell.column_index_from_string(col)
